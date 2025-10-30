@@ -801,7 +801,6 @@ void Admin::AdminPage(){
 				C.Candidate::GetData();
 				cls();
 				C.Candidate::AddData();
-				C.~Candidate();
 				
 				colour("\n\n\t-> Press Enter to Enroll New Candidate\n",14);
 				colour("\t-> Any Other Key to Exit to Main Menu\n\n",14);
@@ -827,11 +826,10 @@ void Admin::AdminPage(){
 				bgcolour("\n\t\t NEW VOTER ENROLLMENT \n\n",15,0x0040);
 				
 				Admin V;
+				Admin V;
 				V.Voter::GetData();
 				cls();
 				V.Voter::AddData();
-				V.~Voter();
-				
 				colour("\n\n\t-> Press Enter to Enroll New Voter\n",14);
 				colour("\t-> Any Other Key to Exit to Main Menu\n\n",14);
 				colour("\t\t Press Key:",10); 
@@ -865,9 +863,10 @@ void Admin::AdminPage(){
 				
 					Admin C;
 					C.Candidate::UpdateData();
-					C.~Candidate();
+					Admin C;
+te();::UpdateData(
 					
-					colour("\n\n\t-> Press Enter to Update Another Record\n",14);
+					colour("\n\n\t-> Press Enter to Update Another Record\n",14\n\t-> Press Enter to Update Another Record\n",14);
 					colour("\t-> Any Other Key to Exit to Main Menu\n\n",14);
 					colour("\t\t Press Key:",10); 
 					int ch=getch();
@@ -889,10 +888,8 @@ void Admin::AdminPage(){
 					bgcolour("\n\t\t VOTER DATA UPDATION \n\n",15,0x0040);
 					
 					Admin V;
+					Admin V;V.Voter::UpdateData();
 					V.Voter::UpdateData();
-					V.~Voter();
-					
-					colour("\n\n\t-> Press Enter to Update Another Record\n",14);
 					colour("\t-> Any Other Key to Exit to Main Menu\n\n",14);
 					colour("\t\t Press Key:",10); 
 					int ch=getch();
@@ -922,12 +919,11 @@ void Admin::AdminPage(){
 				Admin P;
 				
 				P.Poll::GetData();
+				Admin P;
+				
+				P.Poll::GetData();
 				cls();
 				P.Poll::AddData();
-				P.~Poll();
-				
-				colour("\n\n\t-> Press Enter to Create New Poll\n",14);
-				colour("\t-> Any Other Key to Exit to Main Menu\n\n",14);
 				colour("\t\t Press Key:",10); 
 				int choice=getch();
 				if(choice==13){
