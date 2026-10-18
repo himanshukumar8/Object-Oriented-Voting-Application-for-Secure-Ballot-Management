@@ -1,0 +1,301 @@
+openapi: 3.0.3
+info:
+  title: AegisVote REST API Specification
+  description: Enterprise-grade Object-Oriented Electronic Voting & Ballot Management API
+  version: 1.0.0
+  contact:
+    name: AegisVote Security & Engineering Team
+paths:
+  /api/health:
+    get:
+      summary: System Health & Database Liveness Probe
+      responses:
+        '200':
+          description: System operational and database pool connected
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: "UP" }
+                  database: { type: string, example: "CONNECTED" }
+                  version: { type: string, example: "1.0.0" }
+                  timestamp: { type: string, example: "2026-10-18T00:00:00Z" }
+
+  /api/auth/admin/login:
+    post:
+      summary: Administrator Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string, example: "admin" }
+                password: { type: string, example: "AdminSecure2026!" }
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  user:
+                    type: object
+                    properties:
+                      id: { type: string }
+                      username: { type: string }
+                      role: { type: string, example: "ADMIN" }
+        '401':
+          description: Invalid administrator credentials
+
+  /api/auth/voter/login:
+    post:
+      summary: Voter Identity Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [voter_id, password]
+              properties:
+                voter_id: { type: string, example: "VOTER-101" }
+                password: { type: string, example: "VoterPass2026!" }
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  user:
+                    type: object
+                    properties:
+                      id: { type: string }
+                      voter_id: { type: string }
+                      full_name: { type: string }
+                      role: { type: string, example: "VOTER" }
+        '401':
+          description: Invalid voter credentials
+
+  /api/elections:
+    get:
+      summary: List All Elections
+      description: Returns all elections. If voter Bearer token provided, flags user participation.
+      responses:
+        '200':
+          description: List of elections
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Election'
+    post:
+      summary: Create New Election
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, description, start_time, end_time]
+              properties:
+                title: { type: string }
+                description: { type: string }
+                start_time: { type: string, format: date-time }
+                end_time: { type: string, format: date-time }
+      responses:
+        '201':
+          description: Election created in DRAFT state
+        '403':
+          description: Administrator privileges required
+
+  /api/elections/{id}:
+    get:
+      summary: Get Election Details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Election entity with candidate slate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Election'
+        '404':
+          description: Election not found
+
+  /api/elections/{id}/status:
+    put:
+      summary: Transition Election Lifecycle State
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [DRAFT, SCHEDULED, OPEN, CLOSED, RESULTS_PUBLISHED]
+      responses:
+        '200':
+          description: State successfully transitioned
+        '409':
+          description: Illegal state transition rejected by domain state machine
+
+  /api/elections/{id}/candidates:
+    get:
+      summary: List Assigned Candidates for Election
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Array of assigned candidates
+    post:
+      summary: Assign Candidate to Election Slate
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [candidate_id]
+              properties:
+                candidate_id: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Candidate assigned successfully
+        '409':
+          description: Cannot assign candidate once election is OPEN or CLOSED
+
+  /api/votes:
+    post:
+      summary: Cast Confidential Ballot (Idempotent Transaction)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [election_id, candidate_id]
+              properties:
+                election_id: { type: string, format: uuid }
+                candidate_id: { type: string, format: uuid }
+                idempotency_key: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Ballot successfully accepted and recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BallotReceipt'
+        '200':
+          description: Idempotent replay of existing committed receipt
+        '403':
+          description: Voter ineligible or not enrolled
+        '409':
+          description: Double voting prohibited (already voted)
+
+  /api/elections/{id}/results:
+    get:
+      summary: Certified Election Tallies
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Official certified results tally
+        '403':
+          description: Results confidential until election closure and publication
+
+  /api/admin/audit-logs:
+    get:
+      summary: Retrieve Security & Governance Audit Log
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Array of immutable audit log entries
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: HMAC-SHA256
+
+  schemas:
+    Election:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        description: { type: string }
+        status: { type: string, enum: [DRAFT, SCHEDULED, OPEN, CLOSED, RESULTS_PUBLISHED] }
+        start_time: { type: string, format: date-time }
+        end_time: { type: string, format: date-time }
+        has_voted: { type: boolean }
+        candidates:
+          type: array
+          items:
+            $ref: '#/components/schemas/Candidate'
+
+    Candidate:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        candidate_code: { type: string }
+        full_name: { type: string }
+        party_name: { type: string }
+        party_symbol: { type: string }
+        biography: { type: string }
+
+    BallotReceipt:
+      type: object
+      properties:
+        receipt_hash: { type: string, example: "00000000e4689ee14698d469..." }
+        election_id: { type: string, format: uuid }
+        voter_id: { type: string }
+        cast_at: { type: string, format: date-time }
+        idempotency_key: { type: string }

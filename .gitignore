@@ -1,0 +1,39 @@
+# Build artifacts
+build/
+bin/
+obj/
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+*.lib
+*.obj
+*.o
+
+# Node.js and Frontend
+node_modules/
+frontend/node_modules/
+frontend/dist/
+dist/
+.vite/
+
+# Environment and Secrets
+.env
+*.env.local
+*.env.development.local
+*.env.test.local
+*.env.production.local
+
+# IDE and Editor Clutter
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Database and Logs
+*.log
+pgdata/
