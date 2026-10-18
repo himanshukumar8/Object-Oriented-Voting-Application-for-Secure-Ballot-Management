@@ -177,4 +177,4 @@ A comprehensive, textbook-grade Systems Design Handbook is version-controlled in
 
 ## 8. Historical Baseline Documentation
 
-The original legacy prototype code has been preserved in its original location (`vote.cpp`) for academic comparison and vulnerability auditing. Detailed audit findings and vulnerability assessments are documented in [`docs/PROJECT_AUDIT.md`](docs/PROJECT_AUDIT.md).
+The original legacy prototype code has been preserved in its original location (`vote.cpp`) for academic comparison and vulnerability auditing. Detailed audit findings and vulnerability assessments are documented in [`docs/handbook/01_PROBLEM_AND_LEGACY_AUDIT.md`](docs/handbook/01_PROBLEM_AND_LEGACY_AUDIT.md).
