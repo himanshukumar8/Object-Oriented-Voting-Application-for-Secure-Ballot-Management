@@ -158,23 +158,12 @@ curl -i http://localhost:8080/api/health
 
 ---
 
-## 7. Deliverable B: The Engineering Handbook
+## 7. API Specification
 
-A comprehensive, textbook-grade Systems Design Handbook is version-controlled in [`docs/handbook/`](docs/handbook/):
-
-- [`README.md`](docs/handbook/README.md): Master Table of Contents & Reading Guide
-- [`01_PROBLEM_AND_LEGACY_AUDIT.md`](docs/handbook/01_PROBLEM_AND_LEGACY_AUDIT.md): Problem Statement & Vulnerability Audit of `vote.cpp`
-- [`02_REQUIREMENTS_AND_INVARIANTS.md`](docs/handbook/02_REQUIREMENTS_AND_INVARIANTS.md): Requirements Engineering & The 7 Core Invariants
-- [`03_SYSTEM_ARCHITECTURE.md`](docs/handbook/03_SYSTEM_ARCHITECTURE.md): Modular Monolith Architecture, C++20 RAII & SOLID Design
-- [`04_DATABASE_DESIGN_AND_TRANSACTIONS.md`](docs/handbook/04_DATABASE_DESIGN_AND_TRANSACTIONS.md): Schema, Dual-Table Secrecy, Atomic Duplicate Prevention & Idempotency
-- [`05_SECURITY_AND_CRYPTOGRAPHY.md`](docs/handbook/05_SECURITY_AND_CRYPTOGRAPHY.md): STRIDE Threat Model, PBKDF2 Salting, HMAC Tokens & Constant-Time Logic
-- [`06_API_AND_FRONTEND_ENGINEERING.md`](docs/handbook/06_API_AND_FRONTEND_ENGINEERING.md): REST API Contract, RFC 7807 Problem Details & React 19 Architecture
-- [`07_TESTING_BENCHMARKS_AND_OPERATIONS.md`](docs/handbook/07_TESTING_BENCHMARKS_AND_OPERATIONS.md): Concurrency Race Harness, Benchmark Analysis & Chaos Scenarios
-- [`08_DECISION_RECORDS_AND_TRADE_OFFS.md`](docs/handbook/08_DECISION_RECORDS_AND_TRADE_OFFS.md): ADRs & The "Why Not?" Analysis (Redis, Kafka, Mongo, Microservices)
-- [`INTERVIEW_QUESTIONS.md`](docs/handbook/INTERVIEW_QUESTIONS.md): **Tiered Interview Mastery Guide (Levels 1–5)** for Amazon, Uber, PayPal, IBM, Cisco
+The formal OpenAPI 3.0 specification for the REST API is version-controlled in [`docs/openapi.yaml`](docs/openapi.yaml).
 
 ---
 
 ## 8. Historical Baseline Documentation
 
-The original legacy prototype code has been preserved in its original location (`vote.cpp`) for academic comparison and vulnerability auditing. Detailed audit findings and vulnerability assessments are documented in [`docs/handbook/01_PROBLEM_AND_LEGACY_AUDIT.md`](docs/handbook/01_PROBLEM_AND_LEGACY_AUDIT.md).
+The original legacy prototype code has been preserved in its original location (`vote.cpp`) for academic comparison and vulnerability auditing against this re-engineered C++20 platform.
