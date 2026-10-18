@@ -12,12 +12,9 @@ else()
     add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-# Core include directories
-include_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    "C:/Program Files/PostgreSQL/18/include"
-    "C:/msys64/ucrt64/include"
-)
+# Find dependencies with CMake discovery modules
+find_package(PostgreSQL QUIET)
+find_package(OpenSSL QUIET)
 
 # Core source files (excluding main.cpp for library reuse in tests)
 set(CORE_SOURCES
@@ -40,22 +37,38 @@ set(CORE_SOURCES
 # Create core static library for testability
 add_library(voting_core STATIC ${CORE_SOURCES})
 
-# Platform-specific library linking
-if(WIN32)
-    target_link_libraries(voting_core PUBLIC
-        "C:/Program Files/PostgreSQL/18/bin/libpq.dll"
-        crypto
-        ssl
-        ws2_32
-        crypt32
-    )
+target_include_directories(voting_core PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+# PostgreSQL include and linkage configuration
+if(PostgreSQL_FOUND)
+    target_include_directories(voting_core PUBLIC ${PostgreSQL_INCLUDE_DIRS})
+    target_link_libraries(voting_core PUBLIC ${PostgreSQL_LIBRARIES})
 else()
-    target_link_libraries(voting_core PUBLIC
-        pq
-        crypto
-        ssl
-        pthread
-    )
+    if(WIN32 AND EXISTS "C:/Program Files/PostgreSQL/18/include")
+        target_include_directories(voting_core PUBLIC "C:/Program Files/PostgreSQL/18/include")
+        target_link_libraries(voting_core PUBLIC "C:/Program Files/PostgreSQL/18/bin/libpq.dll")
+    else()
+        target_link_libraries(voting_core PUBLIC pq)
+    endif()
+endif()
+
+# OpenSSL include and linkage configuration
+if(OpenSSL_FOUND)
+    target_link_libraries(voting_core PUBLIC OpenSSL::Crypto OpenSSL::SSL)
+    if(WIN32)
+        target_link_libraries(voting_core PUBLIC ws2_32 crypt32)
+    endif()
+else()
+    if(WIN32)
+        if(EXISTS "C:/msys64/ucrt64/include")
+            target_include_directories(voting_core PUBLIC "C:/msys64/ucrt64/include")
+        endif()
+        target_link_libraries(voting_core PUBLIC crypto ssl ws2_32 crypt32)
+    else()
+        target_link_libraries(voting_core PUBLIC crypto ssl pthread)
+    endif()
 endif()
 
 # Main backend executable

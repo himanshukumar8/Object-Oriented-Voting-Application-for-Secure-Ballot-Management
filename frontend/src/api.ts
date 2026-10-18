@@ -81,6 +81,9 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   }
 
   if (!response.ok) {
+    if (response.status === 401) {
+      setStoredSession(null);
+    }
     const title = data?.title || 'Request Failed';
     const detail = data?.detail || data?.message || response.statusText;
     throw new ApiError(response.status, title, detail);

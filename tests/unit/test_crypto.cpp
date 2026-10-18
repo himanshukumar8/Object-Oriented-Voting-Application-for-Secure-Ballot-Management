@@ -57,7 +57,10 @@ void testTokenService() {
 
     TokenClaims claims;
     bool valid = tokenService.verifyToken(token, claims);
-
+    if (!valid) {
+        std::cerr << "[ERROR] Generated token verification failed!" << std::endl;
+        std::exit(1);
+    }
     assert(valid);
     assert(claims.userId == "user-42");
     assert(claims.role == "ADMIN");

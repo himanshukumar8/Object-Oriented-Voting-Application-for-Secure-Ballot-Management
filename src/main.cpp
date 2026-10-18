@@ -33,6 +33,7 @@ int main() {
     std::cout << "      SECURE BALLOT MANAGEMENT PLATFORM - C++20 BACKEND ENGINE    " << std::endl;
     std::cout << "===================================================================" << std::endl;
 
+    std::string appEnv = getEnvOrDefault("APP_ENV", "development");
     std::string host = getEnvOrDefault("HOST", "0.0.0.0");
     int port = std::stoi(getEnvOrDefault("PORT", "8080"));
     std::string staticDir = getEnvOrDefault("STATIC_DIR", "frontend/dist");
@@ -41,15 +42,50 @@ int main() {
     std::string dbPort = getEnvOrDefault("DB_PORT", "5432");
     std::string dbName = getEnvOrDefault("DB_NAME", "secure_voting_db");
     std::string dbUser = getEnvOrDefault("DB_USER", "subscribly_user");
-    std::string dbPass = getEnvOrDefault("DB_PASSWORD", "1");
-    std::string jwtSecret = getEnvOrDefault("JWT_SECRET", "super_secure_voting_secret_token_key_2026_production");
+
+    const char* envDbPass = std::getenv("DB_PASSWORD");
+    if (!envDbPass || !*envDbPass) {
+        std::cerr << "[FATAL CONFIG ERROR] DB_PASSWORD environment variable is required to start the server." << std::endl;
+        return 1;
+    }
+    std::string dbPass = envDbPass;
+
+    const char* envJwtSecret = std::getenv("JWT_SECRET");
+    std::string jwtSecret;
+    if (appEnv == "production") {
+        if (!envJwtSecret || std::string(envJwtSecret).length() < 32 || std::string(envJwtSecret).find("change_me") != std::string::npos) {
+            std::cerr << "[FATAL CONFIG ERROR] In production mode, JWT_SECRET must be explicitly supplied with at least 32 characters and cannot use placeholder strings." << std::endl;
+            return 1;
+        }
+        jwtSecret = envJwtSecret;
+    } else {
+        if (envJwtSecret && *envJwtSecret) {
+            jwtSecret = envJwtSecret;
+        } else {
+            jwtSecret = "demo_jwt_secret_development_only_2026";
+            std::cout << "[SECURITY WARNING] Running in " << appEnv << " mode with fallback demo JWT_SECRET. Do NOT use in production." << std::endl;
+        }
+    }
+
+    const char* envReceiptSecret = std::getenv("RECEIPT_SECRET");
+    std::string receiptSecret;
+    if (appEnv == "production") {
+        if (!envReceiptSecret || std::string(envReceiptSecret).length() < 32 || std::string(envReceiptSecret).find("change_me") != std::string::npos) {
+            std::cerr << "[FATAL CONFIG ERROR] In production mode, RECEIPT_SECRET must be explicitly supplied with at least 32 characters." << std::endl;
+            return 1;
+        }
+        receiptSecret = envReceiptSecret;
+    } else {
+        receiptSecret = (envReceiptSecret && *envReceiptSecret) ? envReceiptSecret : "demo_receipt_secret_development_only_2026";
+    }
 
     std::string connStr = 
         "host=" + dbHost + " port=" + dbPort + 
         " dbname=" + dbName + " user=" + dbUser + 
         " password=" + dbPass;
 
-    std::cout << "[CONFIG] Target Database: " << dbName << " on " << dbHost << ":" << dbPort << std::endl;
+    std::cout << "[CONFIG] Environment Mode: " << appEnv << std::endl;
+    std::cout << "[CONFIG] Target Database: " << dbName << " on " << dbHost << ":" << dbPort << " (user: " << dbUser << ")" << std::endl;
     std::cout << "[CONFIG] HTTP Listener: " << host << ":" << port << std::endl;
     std::cout << "[CONFIG] Static Assets: " << staticDir << std::endl;
 
@@ -71,7 +107,7 @@ int main() {
         // Services
         voting::services::AuthService authService(pool, tokenService, voterRepo, auditRepo);
         voting::services::ElectionService electionService(electionRepo, candidateRepo, auditRepo);
-        voting::services::VotingService votingService(voteRepo, voterRepo, electionRepo, auditRepo);
+        voting::services::VotingService votingService(voteRepo, voterRepo, electionRepo, auditRepo, receiptSecret);
 
         // API Server
         voting::api::ServerConfig serverConfig{host, port, staticDir};

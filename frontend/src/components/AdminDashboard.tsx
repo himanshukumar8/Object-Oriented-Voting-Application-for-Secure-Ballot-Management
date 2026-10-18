@@ -56,12 +56,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [newVoterName, setNewVoterName] = useState('');
   const [newVoterEmail, setNewVoterEmail] = useState('');
 
-  useEffect(() => {
-    loadCandidates();
-    loadVoters();
-    loadAuditLogs();
-  }, [activeTab]);
-
   const loadCandidates = async () => {
     try {
       const data = await api.getCandidates();
@@ -88,6 +82,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       console.error(err);
     }
   };
+
+  useEffect(() => {
+    let active = true;
+    api.getCandidates().then(data => { if (active) setCandidates(data); }).catch(console.error);
+    api.getVoters().then(data => { if (active) setVoters(data); }).catch(console.error);
+    api.getAuditLogs().then(data => { if (active) setAuditLogs(data); }).catch(console.error);
+    return () => {
+      active = false;
+    };
+  }, [activeTab]);
 
   // State Transition Action
   const handleTransition = async (electionId: string, nextStatus: ElectionStatus) => {

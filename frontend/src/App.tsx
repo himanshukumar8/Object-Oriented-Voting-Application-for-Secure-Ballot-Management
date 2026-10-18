@@ -32,13 +32,23 @@ export const App: React.FC = () => {
     try {
       const data = await api.getElections();
       setElections(data);
-    } catch (err: any) {
+    } catch {
       showToast('Failed to connect to voting backend', 'error');
     }
   };
 
   useEffect(() => {
-    loadElections();
+    let active = true;
+    api.getElections()
+      .then((data) => {
+        if (active) setElections(data);
+      })
+      .catch(() => {
+        if (active) showToast('Failed to connect to voting backend', 'error');
+      });
+    return () => {
+      active = false;
+    };
   }, [session]);
 
   const handleOpenLogin = (role: 'VOTER' | 'ADMIN' = 'VOTER') => {

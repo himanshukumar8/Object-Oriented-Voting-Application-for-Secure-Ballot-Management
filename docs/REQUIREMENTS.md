@@ -162,3 +162,22 @@ The platform enforces seven non-negotiable invariants at both the application do
 - **Parameterized SQL:** 100% of queries use prepared statements; zero dynamic SQL string concatenations.
 - **CORS & CSRF:** Strict CORS headers permitting only configured origins; SameSite=Strict cookies / Bearer auth tokens.
 - **Input Sanitization:** All payload inputs validated with boundary rules (lengths, alphanumeric formats).
+
+---
+
+## 6. Implementation Status & Requirement Traceability Matrix
+
+This matrix establishes the definitive relationship between the initial Product Requirements Document and the actual implemented codebase:
+
+| Capability / Requirement | PRD Specification | Actual Implemented State | Verification Status | Architectural & Operational Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| **Password Hashing** | bcrypt / Argon2id (≥ 64MB, ≥ 12 rounds) | OpenSSL PBKDF2-HMAC-SHA256 (100,000 iterations, 16-byte random salt) | **VERIFIED BY TEST** (`CryptoTests`) | Standard NIST SP 800-132 key stretching; differs from PRD mention of bcrypt/Argon2id. |
+| **Multi-Factor Authentication (MFA)** | Multi-factor capable authentication (TOTP/SMS) | **UNIMPLEMENTED** (Single-factor password auth only) | **UNIMPLEMENTED** | Planned capability; no TOTP or secondary factor in C++ backend or React UI. |
+| **Session & Token Architecture** | Compact cryptographic session tokens with expiration | 2-part signed bearer token (`base64(payload).signature`, HMAC-SHA256, constant-time validation) | **VERIFIED BY TEST** (`CryptoTests`, `E2E`) | Expiration enforced server-side (`exp` timestamp check); client stores in `localStorage`. |
+| **Role-Based Authorization (RBAC)** | Strict admin vs voter permission boundaries | Route-level checks in `Server.cpp` (`claims.role == "ADMIN"`, `"VOTER"`) | **VERIFIED BY TEST** (`E2E`, Browser UI) | Admin endpoints return 403 on voter tokens; voting returns 403 on admin tokens. |
+| **Rate Limiting & DoS Defense** | Protection against brute-force & CPU exhaustion | **UNIMPLEMENTED in backend engine** | **SECURITY LIMITATION** | No in-process sliding window; requires upstream reverse proxy (e.g. NGINX `limit_req`). |
+| **Double-Vote Prevention** | Mathematically and transactionally at-most-once voting | Database constraint `UNIQUE(election_id, voter_id)` and transactional row locks | **VERIFIED BY TEST** (`ConcurrencyRaceTests`, E2E) | 20 simultaneous threads resulted in exactly 1 accepted ballot and 19 conflicts. |
+| **Ballot Secrecy & Decoupling** | Separation of voter identity from candidate choice | Dual-table relational decoupling (`ballot_receipts` vs `votes` with random nonces & hour-truncated timestamps) | **VERIFIED BY TEST** (`verify_api_e2e.py`) | Breaks microsecond temporal join. Sparse turnout (<2 votes/hr) remains a statistical correlation limitation. |
+| **Election Lifecycle State Machine** | DRAFT → SCHEDULED → OPEN → CLOSED → RESULTS_PUBLISHED | Domain enum state transitions with status validation | **VERIFIED BY TEST** (`InvariantTests`, E2E) | Out-of-order transitions strictly rejected with HTTP 409/400. |
+| **Idempotency Replay** | Identical submission returns original receipt without duplicate counting | Database constraint `UNIQUE(voter_id, idempotency_key)` and transactional query | **VERIFIED BY TEST** (`ConcurrencyRaceTests`, E2E) | Replays return identical receipt hash with no change in vote count. |
+| **Transport Encryption (TLS)** | HTTPS / TLS 1.3 | Plaintext HTTP binding (`0.0.0.0:8080`) in C++ engine | **OPERATIONAL REQUIREMENT** | Local demo runs over HTTP; production mandates reverse-proxy TLS termination. |

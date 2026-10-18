@@ -23,10 +23,19 @@
 ## 3. Engineering Analysis
 
 ### 3.1. Read Latency & Throughput Profile
-Read endpoints (`/api/health`, `/api/elections`, `/api/candidates`) demonstrate sub-millisecond to low single-digit millisecond latency (p50 < 3ms, p95 < 8ms). The zero-copy JSON serialization via `nlohmann::json` combined with PostgreSQL connection pooling allows high throughput on modest hardware without requiring Redis caching.
+Under concurrent load (5 workers, fresh TCP connections with `Connection: close`), read endpoints demonstrate client-observed p50 latency between **4.31 ms and 8.94 ms**, and p95 latency between **6.54 ms and 11.94 ms** (with throughput between 445 and 853 req/s). In micro-benchmarks with reused persistent TCP keep-alive sockets (see `docs/BENCHMARK_VALIDATION.md`), raw internal server query processing averaged **0.76 ms** (p50). Client-observed latency includes local loopback TCP handshakes and should not be conflated with raw server processing time.
 
 ### 3.2. Authentication Latency
-Voter and Admin authentication endpoints exhibit ~50-70ms latency by design due to PBKDF2-HMAC-SHA256 key stretching (100,000 iterations). This deliberate CPU cost protects against brute-force password cracking while easily maintaining acceptable interactive response times.
+Voter and Admin authentication endpoints exhibit ~60–66 ms latency (p50: 62.40 ms) by design due to PBKDF2-HMAC-SHA256 key stretching (100,000 iterations). This deliberate CPU cost protects against brute-force password cracking while easily maintaining acceptable interactive response times.
 
 ### 3.3. Write Path & Atomic Vote Submission
-The vote submission path performs an atomic PostgreSQL transaction consisting of: row-level lock (`FOR SHARE`) on the election, idempotency check, dual-table insertion (`ballot_receipts` with unique constraint enforcement and decoupled `votes` table), and audit logging. Under concurrent client threads, the system achieved zero duplicate entries, 100% data consistency, and p50 latency under 15ms.
+The vote submission path performs an atomic PostgreSQL transaction consisting of: row-level lock (`FOR SHARE`) on the election, idempotency check, dual-table insertion (`ballot_receipts` with unique constraint enforcement and decoupled `votes` table), and audit logging. Under 5 concurrent client worker threads, the system achieved zero duplicate entries, 100% data consistency, client-observed p50 latency of **7.27 ms**, and p95 of **28.19 ms** (235.8 req/s throughput).
+
+---
+
+## 4. Benchmark Scope & Environmental Qualifications
+
+1. **Loopback Environment:** All benchmarks were measured over IPv4 loopback (`127.0.0.1:8080`) on a single dedicated Windows development workstation. Real-world deployments behind a reverse proxy (e.g. NGINX) with WAN latency and TLS handshakes will observe higher end-to-end response times (+20–50 ms).
+2. **Shared Host Resources:** PostgreSQL and `voting_server.exe` shared the same host CPU cores during testing.
+3. **Capacity Boundaries:** The system was verified up to 20 concurrent threads locally. High-throughput distributed clustering (>10,000 req/s) was not evaluated and requires multi-node database sharding.
+4. **Historical Windows IPv6 Anomaly:** Initial benchmarks using hostname `localhost` experienced an artifactual ~2,000 ms delay due to the Windows loopback IPv6 SYN timeout. Targeting `127.0.0.1` resolved this, as documented in `docs/BENCHMARK_VALIDATION.md`.
